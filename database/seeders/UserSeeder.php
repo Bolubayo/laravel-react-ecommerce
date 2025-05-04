@@ -27,12 +27,12 @@ class UserSeeder extends Seeder
         ]);
         $user->assignRole(RolesEnum::Vendor->value);
         
-        // Vendor::factory()->create([
-        //     'user_id' => $user->id,
-        //     'status' => VendorStatusEnum::Approved,
-        //     'store_name' => 'Vendor Store',
-        //     'store_address' => fake()->address(),
-        // ]);
+        Vendor::factory()->create([
+            'user_id' => $user->id,
+            'status' => VendorStatusEnum::Approved,
+            'store_name' => 'Vendor Store',
+            'store_address' => fake()->address(),
+        ]);
 
         User::factory()->create([
             'name' => 'Admin',
