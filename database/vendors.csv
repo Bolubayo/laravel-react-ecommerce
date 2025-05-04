@@ -1,0 +1,5 @@
+user_id,status,store_name,store_address,cover_image,created_at,updated_at
+1,approved,user,,,2025-04-30 10:42:12,2025-04-30 10:42:12
+2,approved,vendor-store,Some test address,,2025-04-14 00:16:06.000,2025-04-26 16:34:50
+4,approved,zoomer,Yesterday,,2025-04-14 00:16:06.000,2025-04-26 16:32:03
+9,approved,user7,Test,,2025-04-26 15:51:56,2025-04-26 15:54:10

@@ -1,0 +1,11 @@
+id,name,email,email_verified_at,password,auth_provider,auth_provider_id,remember_token,created_at,updated_at,stripe_account_id,stripe_account_active
+1,User,user@example.com,2025-04-13 12:13:44,$2y$12$aoAwK8KfActLtlrUqQiuHe9DKlsKPUphIDm1xs0/BnXPaYsY0vmJy,,,z4smMRguyxw5w8NXT0ARF7Ey53mEeZ6zoUXpKeA9bwmT9JIGFefaMp6piX5Y,2025-04-13 12:13:45,2025-04-13 12:13:45,,0
+2,Vendor,vendor@example.com,2025-04-13 12:13:45,$2y$12$aoAwK8KfActLtlrUqQiuHe9DKlsKPUphIDm1xs0/BnXPaYsY0vmJy,,,btA7dtk9rCA6c8aA5HBnqdfixQ41R87gqEt5m7wyX0P5u9U7y94nYlbG0fDe,2025-04-13 12:13:45,2025-04-26 16:39:17,acct_1RIBjEPNkfTx3wxg,1
+3,Admin,admin@example.com,2025-04-13 12:13:45,$2y$12$aoAwK8KfActLtlrUqQiuHe9DKlsKPUphIDm1xs0/BnXPaYsY0vmJy,,,siFijZdeXMq6ZI4TstGP5tnMm52hov92ltZSaBaegUpdrXaNOu5KT0pwg47v,2025-04-13 12:13:45,2025-04-13 12:13:45,,0
+4,Vendor 2,vendor2@example.com,2025-04-14 00:16:06.000,$2y$12$aoAwK8KfActLtlrUqQiuHe9DKlsKPUphIDm1xs0/BnXPaYsY0vmJy,,,,2025-04-14 00:16:06.000,2025-04-26 16:32:09,acct_1RIBgYPFM46OPV1A,0
+5,Ogunmade Daniel,abayomiogunmade48@gmail.com,,$2y$12$81nScbGU8DGm92UZWRJaXO8y2bDSHnlPKK0WVRw/aXyZ7u1KTs2GO,google,117819841142124463885,,2025-04-20 06:05:53,2025-04-20 06:05:53,,0
+6,Daniel Ogunmade,daniel@example.com,,$2y$12$WcHLrvHDh050C3tRnEonMef9suEnEvurJxR8qKCzpo4r4rOJ2y1u6,,,,2025-04-23 12:16:25,2025-04-23 12:16:25,,0
+7,User5,user2@example.com,,$2y$12$zybDQdva1UmFv0AhFj5HMu7IQNbBdyGYkYXap86O78QMJVS3xpWwG,,,,2025-04-23 12:21:46,2025-04-23 12:21:46,,0
+8,User6,user3@example.com,,$2y$12$tGY61mKsWDImKVG1KALeY.8MWQPGJUCQn0CBu0UFxxaheAJ..WNCm,,,,2025-04-25 19:30:36,2025-04-25 19:30:36,,0
+9,User7,user4@example.com,2025-04-25 19:49:30,$2y$12$gWZMOvQqnOtdfECYn.O8bO9anTNIXYOBUfFwD4yRVSIhK1r5OXNAu,,,,2025-04-25 19:49:11,2025-04-26 16:23:18,acct_1RIBSJPM0XRi41qu,1
+10,Laravel React Ecommerce Tutorial,user6@example.com,2025-04-26 11:26:50,$2y$12$4.FkkUj1vwNqINyeCPRjH.PMAy5ZsjlBI4jhJVK40.7LNTXgrNtiG,,,,2025-04-26 11:26:23,2025-04-26 11:26:50,,0

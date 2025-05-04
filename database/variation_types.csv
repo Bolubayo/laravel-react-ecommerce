@@ -1,0 +1,5 @@
+id,product_id,name,type
+1,1,Color,Image
+2,1,Size,Radio
+3,2,Color,Image
+4,2,Size,Radio
