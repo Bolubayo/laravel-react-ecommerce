@@ -112,7 +112,7 @@ class Product extends Model implements HasMedia
         return $this->price;
     }
 
-    public function getImageForOptions(?array $optionIds)
+    public function getImageForOptions(?array $optionIds = null)
     {
         if ($optionIds) {
             $optionIds = array_values($optionIds);
@@ -130,7 +130,7 @@ class Product extends Model implements HasMedia
         return $this->getFirstMediaUrl('images', 'small');
     }
 
-    public function getImagesForOptions(?array $optionIds)
+    public function getImagesForOptions(?array $optionIds = null)
     {
         if ($optionIds) {
             $optionIds = array_values($optionIds);
