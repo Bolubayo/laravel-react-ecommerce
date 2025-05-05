@@ -27,7 +27,7 @@ class ProductResource extends JsonResource
     Log::info('Main product image URL', [
         'product_id' => $this->id,
         'url' => $this->getFirstMediaUrl('images'),
-        'file_exists' => file_exists(public_path(str_replace('/storage', 'storage/app/public', $this->getFirstMediaUrl('images'))))
+        'file_exists' => file_exists(public_path(str_replace('/images', '/images', $this->getFirstMediaUrl('images'))))
     ]);
 
     // Log conversion paths
