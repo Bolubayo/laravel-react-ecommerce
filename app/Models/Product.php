@@ -23,13 +23,16 @@ class Product extends Model implements HasMedia
     {
         \Log::info('Registering media conversions for Product'); 
         $this->addMediaConversion('thumb')
-            ->width(100);
+            ->width(100)
+            ->queued();
 
         $this->addMediaConversion('small')
-            ->width(480);
+            ->width(480)
+            ->queued();
 
         $this->addMediaConversion('large')
-            ->width(1200);
+            ->width(1200)
+            ->queued();
     }
 
     public function registerMediaCollections(): void
@@ -37,7 +40,8 @@ class Product extends Model implements HasMedia
         $this->addMediaCollection('images')
             ->useFallbackUrl('/placeholder.jpg') // optional fallback if no image
             ->useDisk('public') // or any other disk you're using
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->queued();
     }
 
     public function scopeForVendor(Builder $query): Builder
