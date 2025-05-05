@@ -151,7 +151,7 @@ class CartService
 
         $cartItem = CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->where('variation_type_option_ids', json_encode($optionIds))
+            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
             ->first();
 
         if ($cartItem) {
@@ -183,7 +183,7 @@ class CartService
 
         $cartItem = CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->where('variation_type_option_ids', json_encode($optionIds))
+            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
             ->first();
 
         if ($cartItem) {
@@ -233,7 +233,7 @@ class CartService
 
         CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->where('variation_type_option_ids', json_encode($optionIds))
+            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
             ->delete();
     }
 
@@ -299,7 +299,7 @@ class CartService
         foreach ($cartItems as $itemKey => $cartItem) {
             $existingItem = CartItem::where('user_id', $userId)
                 ->where('product_id', $cartItem['product_id'])
-                ->where('variation_type_option_ids', json_encode($cartItem['option_ids']))
+                ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($cartItem['option_ids'])])
                 ->first();
 
             if ($existingItem) {
