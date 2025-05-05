@@ -111,8 +111,11 @@ class StripeController extends Controller
                     Mail::to($order->vendorUser)->send(new NewOrderMail($order));
                 }
 
-
+                
                 Mail::to($orders[0]->user)->send(new CheckoutCompleted($orders));
+
+                break;
+                
 
 
             case 'checkout.session.completed':
@@ -143,7 +146,7 @@ class StripeController extends Controller
                         if ($options) {
                             sort($options);
                             $variation = $product->variations()
-                                ->where('variation_type_option_ids', $options)
+                                ->where('variation_type_option_ids', json_encode($options))
                                 ->first();
 
                             if ($variation && $variation->quantity != null) {
@@ -162,6 +165,8 @@ class StripeController extends Controller
                     ->whereIn('product_id', $productsToDeletedFromCart)
                     ->where('saved_for_later', false)
                     ->delete();
+
+                break;
 
             default:
                 echo 'Received unknown event type ' . $event->type;
