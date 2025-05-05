@@ -42,7 +42,7 @@ class VendorController extends Controller
                 'required', 
                 'regex:/^[a-z0-9-]+$/', 
                 Rule::unique('vendors', 'store_name')
-                    ->ignore($user->id, 'user_id    ')
+                    ->ignore($user->id, 'user_id')
             ],
             'store_address' => 'nullable', 
         ], [
