@@ -73,11 +73,11 @@
 @endforeach
 
 <x-mail::subcopy>
-    Lorem shit
+    This is a confirmation of your recent purchase. If you did not make this transaction, please contact our support team.
 </x-mail::subcopy>
 
 <x-mail::panel>
-    Lorem shit
+    Need help? Just reply to this email — we’re here to assist you.
 </x-mail::panel>
 
 Thanks,<br>
