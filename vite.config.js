@@ -11,4 +11,8 @@ export default defineConfig({
         }),
         react(),
     ],
+    build: {
+        outDir: 'public/build', // Ensure the build files go into the public directory
+        manifest: true,  // Make sure Vite generates a manifest file
+    },
 });
