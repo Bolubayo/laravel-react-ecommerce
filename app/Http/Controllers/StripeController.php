@@ -19,10 +19,9 @@ class StripeController extends Controller
     {
         $user = auth()->user();
         $session_id = $request->get('session_id');
-        $orders = Order::where('stripe_session_id', $session_id)
-            ->get();
+        $orders = Order::where('stripe_session_id', $session_id)->get();
 
-        if ($orders->count() === 0) {
+        if ($orders->isEmpty()) {
             abort(404);
         }
 
@@ -41,8 +40,7 @@ class StripeController extends Controller
     {
         $user = auth()->user();
         $session_id = $request->get('session_id');
-        $orders = Order::where('stripe_session_id', $session_id)
-            ->get();
+        $orders = Order::where('stripe_session_id', $session_id)->get();
 
         foreach ($orders as $order) {
             if ($order->user_id !== $user->id) {
@@ -57,24 +55,25 @@ class StripeController extends Controller
 
     public function webhook(Request $request)
     {
-        $stripe = new \Stripe\StripeClient(config('app.stripe_secret_key'));
+        $stripeSecret = config('app.stripe_secret_key', env('STRIPE_SECRET'));
+        $webhookSecret = config('app.stripe_webhook_secret', env('STRIPE_WEBHOOK_SECRET'));
 
-        $endpoint_secret = config('app.stripe_webhook_secret');
+        $stripe = new \Stripe\StripeClient($stripeSecret);
 
         $payload = $request->getContent();
-        $sig_header = request()->header('Stripe-Signature');
+        $sig_header = $request->header('Stripe-Signature');
         $event = null;
 
         try {
             $event = \Stripe\Webhook::constructEvent(
-                $payload, $sig_header, $endpoint_secret
+                $payload, $sig_header, $webhookSecret
             );
         } catch (\UnexpectedValueException $e) {
-            Log::error($e);
-            return response('Invalid Payload', 400);
+            Log::error('Stripe payload error: ' . $e->getMessage());
+            return response('Invalid payload', 400);
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
-            Log::error($e);
-            return response('Invalid Payload', 400);
+            Log::error('Stripe signature error: ' . $e->getMessage());
+            return response('Invalid signature', 400);
         }
 
         switch ($event->type) {
@@ -84,101 +83,91 @@ class StripeController extends Controller
                 $paymentIntent = $charge['payment_intent'];
                 $balanceTransaction = $stripe->balanceTransactions->retrieve($transactionId);
 
-                $orders = Order::where('payment_intent', $paymentIntent)
-                    ->get();
+                $orders = Order::where('payment_intent', $paymentIntent)->get();
+                if ($orders->isEmpty()) break;
 
                 $totalAmount = $balanceTransaction['amount'];
-                $stripeFee = 0;
-                foreach ($balanceTransaction['fee_details'] as $fee_detail) {
-                    if ($fee_detail['type'] === 'stripe_fee') {
-                        $stripeFee = $fee_detail['amount'];
-                    }
-                }
-                $platformFreePercent = config('app.platform_fee_pct');
+                $stripeFee = collect($balanceTransaction['fee_details'])
+                    ->firstWhere('type', 'stripe_fee')['amount'] ?? 0;
 
                 foreach ($orders as $order) {
                     $vendorShare = $order->total_price / $totalAmount;
-
-                    /** @var Order $order */
                     $order->online_payment_commission = $vendorShare * $stripeFee;
-
-                    $order->website_commission = ($order->total_price -         $order->online_payment_commission) / 100;
-
-                    $order->vendor_subtotal =  $order->total_price -        $order->online_payment_commission - $order->website_commission;
-
+                    $order->website_commission = ($order->total_price - $order->online_payment_commission) / 100;
+                    $order->vendor_subtotal = $order->total_price - $order->online_payment_commission - $order->website_commission;
                     $order->save();
 
                     Mail::to($order->vendorUser)->send(new NewOrderMail($order));
                 }
 
-                
-                Mail::to($orders[0]->user)->send(new CheckoutCompleted($orders));
+                Mail::to($orders->first()->user)->send(new CheckoutCompleted($orders));
+                break;
 
             case 'checkout.session.completed':
                 $session = $event->data->object;
-                $pi = $session['payment_intent'];
+                $paymentIntent = $session['payment_intent'];
 
-                $orders = Order::query()
-                    ->with(['orderItems'])
-                    ->where(['stripe_session_id' => $session['id']])
-                    ->get();
+                $orders = Order::with(['orderItems'])->where('stripe_session_id', $session['id'])->get();
+                if ($orders->isEmpty()) break;
 
-                $productsToDeletedFromCart = [];
+                $productIdsToRemove = [];
+
                 foreach ($orders as $order) {
-                    $order->payment_intent = $pi;
+                    $order->payment_intent = $paymentIntent;
                     $order->status = OrderStatusEnum::Paid;
                     $order->save();
 
-                    $productsToDeletedFromCart =
-                        [
-                            ...$productsToDeletedFromCart,
-                            ...$order->orderItems->map(fn($item) => $item->product_id)->toArray()
-                        ];
+                    foreach ($order->orderItems as $item) {
+                        $product = $item->product;
+                        $variationOptionIds = $item->variation_type_option_ids;
 
-                    foreach ($order->orderItems as $orderItem) {
-                        /** @var \App\Models\OrderItem $orderItem */
-                        $options = $orderItem->variation_type_option_ids;
-                        $product = $orderItem->product;
-                        if ($options) {
-                            sort($options);
+                        if ($variationOptionIds) {
+                            sort($variationOptionIds);
                             $variation = $product->variations()
-                                ->where('variation_type_option_ids', $options)
+                                ->where('variation_type_option_ids', $variationOptionIds)
                                 ->first();
 
-                            if ($variation && $variation->quantity != null) {
-                                $variation->quantity -= $orderItem->quantity;
+                            if ($variation && $variation->quantity !== null) {
+                                $variation->quantity -= $item->quantity;
                                 $variation->save();
                             }
-                        } else if ($product->quantity != null) {
-                            $product->quantity -= $orderItem->quantity;
+                        } elseif ($product->quantity !== null) {
+                            $product->quantity -= $item->quantity;
                             $product->save();
                         }
+
+                        $productIdsToRemove[] = $item->product_id;
                     }
                 }
 
-                CartItem::query()
-                    ->where('user_id', $order->user_id)
-                    ->whereIn('product_id', $productsToDeletedFromCart)
+                // Clear cart items after order is successful
+                CartItem::where('user_id', $orders->first()->user_id)
+                    ->whereIn('product_id', $productIdsToRemove)
                     ->where('saved_for_later', false)
                     ->delete();
 
+                break;
 
             default:
-                echo 'Received unknown event type ' . $event->type;
+                Log::info("Unhandled Stripe event: {$event->type}");
+                break;
         }
 
         return response('', 200);
     }
 
-    public function connect() {
-        if (! auth()->user()->getStripeAccountId()) {
-            auth()->user()->createStripeAccount(['type' => 'express']);
+    public function connect()
+    {
+        $user = auth()->user();
+
+        if (!$user->getStripeAccountId()) {
+            $user->createStripeAccount(['type' => 'express']);
         }
-    
-        if (! auth()->user()->isStripeAccountActive()) {
-            return redirect(auth()->user()->getStripeAccountLink());
+
+        if (!$user->isStripeAccountActive()) {
+            return redirect($user->getStripeAccountLink());
         }
-    
-        return back()->with('success','Your account is already connected.');
+
+        return back()->with('success', 'Your account is already connected.');
     }
 }
