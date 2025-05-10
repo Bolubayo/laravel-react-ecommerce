@@ -1,1 +1,0 @@
-import{j as s}from"./app-B8WagT0Y.js";function r({value:e,className:a="",children:l,...t}){return s.jsx("label",{...t,className:"label "+a,children:s.jsx("span",{className:"label-text",children:e||l})})}export{r as I};
