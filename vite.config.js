@@ -1,7 +1,3 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react';
-
 export default defineConfig({
     plugins: [
         laravel({
@@ -12,7 +8,12 @@ export default defineConfig({
         react(),
     ],
     build: {
-        outDir: 'public/build', // Ensure the build files go into the public directory
-        manifest: true,  // Make sure Vite generates a manifest file
+        manifest: true,
+        outDir: 'public/build',
+        emptyOutDir: true,
+    },
+    ssr: {
+        noExternal: ['@inertiajs/server'], // Add this if using Inertia SSR
+        outDir: 'bootstrap/ssr', // Separate SSR build output
     },
 });
