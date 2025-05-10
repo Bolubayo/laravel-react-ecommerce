@@ -82,5 +82,6 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 // Catch-all route
-Route::get('/{any}', fn () => Inertia::render('App'))
+Route::get('/{any}', fn () => Inertia::render('Home'))
     ->where('any', '^(?!storage|api).*$');
+
