@@ -138,7 +138,7 @@ class StripeController extends Controller
                         if ($options) {
                             sort($options);
                             $variation = $product->variations()
-                                ->where('variation_type_option_ids', $options)
+                                ->whereJsonContains('variation_type_option_ids', $options) // ✅ Fix for JSON comparison
                                 ->first();
 
                             if ($variation && $variation->quantity !== null) {
