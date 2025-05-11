@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\CartItem;
 use App\Models\Product;
-use App\Models\VariationType;
 use App\Models\VariationTypeOption;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -69,7 +68,7 @@ class CartService
                     ->keyBy('id');
 
                 $cartItemData = [];
-                foreach ($cartItems as $key => $cartItem) {
+                foreach ($cartItems as $cartItem) {
                     $product = data_get($products, $cartItem['product_id']);
                     if (!$product) continue;
 
@@ -83,7 +82,7 @@ class CartService
 
                     foreach ($cartItem['option_ids'] as $option_id) {
                         $option = data_get($options, $option_id);
-                        if(!$imageUrl) {
+                        if (!$imageUrl) {
                             $imageUrl = $option->getFirstMediaUrl('images', 'small');
                         }
                         $optionInfo[] = [
@@ -126,45 +125,33 @@ class CartService
 
     public function getTotalQuantity(): int
     {
-        $totalQuantity = 0;
-        foreach ($this->getCartItems() as $item) {
-            $totalQuantity += $item['quantity'];
-        }
-
-        return $totalQuantity;
+        return array_sum(array_column($this->getCartItems(), 'quantity'));
     }
 
     public function getTotalPrice(): float
     {
-        $total = 0;
-
-        foreach ($this->getCartItems() as $item) {
-            $total += $item['quantity'] * $item['price'];
-        }
-
-        return $total;
+        return array_sum(array_map(fn($item) => $item['quantity'] * $item['price'], $this->getCartItems()));
     }
 
     protected function updateItemQuantityInDatabase(int $productId, int $quantity, array $optionIds)
     {
         $userId = Auth::id();
+        ksort($optionIds); // Ensure consistent ordering
 
+        // ✅ FIX: use whereJsonContains for PostgreSQL JSONB
         $cartItem = CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
+            ->whereJsonContains('variation_type_option_ids', $optionIds)
             ->first();
 
         if ($cartItem) {
-            $cartItem->update([
-                'quantity' => $quantity,
-            ]);
+            $cartItem->update(['quantity' => $quantity]);
         }
     }
 
     protected function updateItemQuantityInCookies(int $productId, int $quantity, array $optionIds)
     {
         $cartItems = $this->getCartItemsFromCookies();
-
         ksort($optionIds);
 
         $itemKey = $productId . '_' . json_encode($optionIds);
@@ -179,11 +166,12 @@ class CartService
     protected function saveItemToDatabase(int $productId, int $quantity, $price, array $optionIds)
     {
         $userId = Auth::id();
-        ksort($optionIds);
+        ksort($optionIds); // Ensure consistent ordering
 
+        // ✅ FIX: use whereJsonContains instead of raw JSONB comparison
         $cartItem = CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
+            ->whereJsonContains('variation_type_option_ids', $optionIds)
             ->first();
 
         if ($cartItem) {
@@ -197,14 +185,13 @@ class CartService
                 'quantity' => $quantity,
                 'price' => $price,
                 'variation_type_option_ids' => $optionIds,
-            ]); 
+            ]);
         }
     }
 
     protected function saveItemToCookies(int $productId, int $quantity, $price, array $optionIds)
     {
         $cartItems = $this->getCartItemsFromCookies();
-
         ksort($optionIds);
 
         $itemKey = $productId . '_' . json_encode($optionIds);
@@ -212,7 +199,7 @@ class CartService
         if (isset($cartItems[$itemKey])) {
             $cartItems[$itemKey]['quantity'] += $quantity;
             $cartItems[$itemKey]['price'] = $price;
-      } else {
+        } else {
             $cartItems[$itemKey] = [
                 'id' => \Str::uuid(),
                 'product_id' => $productId,
@@ -228,23 +215,21 @@ class CartService
     protected function removeItemFromDatabase(int $productId, array $optionIds)
     {
         $userId = Auth::id();
+        ksort($optionIds); // Keep order consistent
 
-        ksort($optionIds);
-
+        // ✅ FIX: use whereJsonContains for safe JSONB matching
         CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($optionIds)])
+            ->whereJsonContains('variation_type_option_ids', $optionIds)
             ->delete();
     }
 
     protected function removeItemFromCookies(int $productId, array $optionIds)
     {
         $cartItems = $this->getCartItemsFromCookies();
-
         ksort($optionIds);
 
         $cartKey = $productId . '_' . json_encode($optionIds);
-
         unset($cartItems[$cartKey]);
 
         Cookie::queue(self::COOKIE_NAME, json_encode($cartItems), self::COOKIE_LIFETIME);
@@ -254,34 +239,26 @@ class CartService
     {
         $userId = Auth::id();
 
-        $cartItems = CartItem::where('user_id', $userId)
+        return CartItem::where('user_id', $userId)
             ->get()
-            ->map(function ($cartItem) {
-                return [
-                    'id' => $cartItem->id,
-                    'product_id' => $cartItem->product_id,
-                    'quantity' => $cartItem->quantity,
-                    'price' => $cartItem->price,
-                    'option_ids' => $cartItem->variation_type_option_ids,
-                ];
-            })
+            ->map(fn($item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'option_ids' => $item->variation_type_option_ids,
+            ])
             ->toArray();
-
-        return $cartItems;
     }
 
     protected function getCartItemsFromCookies()
     {
-        $cartItems = json_decode(Cookie::get(self::COOKIE_NAME, '[]'), true);
-
-        return $cartItems;
+        return json_decode(Cookie::get(self::COOKIE_NAME, '[]'), true);
     }
 
     public function getCartItemsGrouped(): array
     {
-        $cartItems = $this->getCartItems();
-
-        return collect($cartItems)
+        return collect($this->getCartItems())
             ->groupBy(fn($item) => $item['user']['id'])
             ->map(fn($items, $userId) => [
                 'user' => $items->first()['user'],
@@ -296,10 +273,13 @@ class CartService
     {
         $cartItems = $this->getCartItemsFromCookies();
 
-        foreach ($cartItems as $itemKey => $cartItem) {
+        foreach ($cartItems as $cartItem) {
+            ksort($cartItem['option_ids']); // Ensure ordering before comparing
+
+            // ✅ FIX: use whereJsonContains for merging
             $existingItem = CartItem::where('user_id', $userId)
                 ->where('product_id', $cartItem['product_id'])
-                ->whereRaw('variation_type_option_ids::jsonb = ?', [json_encode($cartItem['option_ids'])])
+                ->whereJsonContains('variation_type_option_ids', $cartItem['option_ids'])
                 ->first();
 
             if ($existingItem) {
@@ -318,6 +298,7 @@ class CartService
             }
         }
 
+        // Clear cookie after merging
         Cookie::queue(self::COOKIE_NAME, '', -1);
     }
 }
